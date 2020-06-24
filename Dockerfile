@@ -10,6 +10,7 @@ RUN mkdir /usr/local/tomcat9/webapps/uptime/
 ADD exercise.py /root/exercise.py
 ADD exercise.exe /root/exercise.exe
 RUN chmod 755 /root/exercise.py
+RUN chmod 755 /root/exercise.exe
 #ADD secrets-entrypoint.sh /
 #RUN chmod 755 /secrets-entrypoint.sh
 #ENTRYPOINT ["/secrets-entrypoint.sh"]
