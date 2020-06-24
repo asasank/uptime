@@ -1,7 +1,7 @@
 import datetime
 import subprocess
 import time
-cmd = ['./exercise.exe']
+cmd = ['./root/exercise.exe']
 while True:
    result = subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode('utf-8')
    datetime_object = datetime.datetime.now()
