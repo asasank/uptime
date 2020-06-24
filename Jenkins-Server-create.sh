@@ -18,3 +18,4 @@ rpm --import http://pkg.jenkins.io/redhat-stable/jenkins.io.key
 yum install jenkins -y 
 systemctl start jenkins
 systemctl enable jenkins
+touch /etc/containers/nodocker
