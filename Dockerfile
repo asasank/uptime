@@ -9,7 +9,8 @@ RUN /usr/local/tomcat9/bin/startup.sh
 RUN mkdir /usr/local/tomcat9/webapps/uptime/
 ADD exercise.py /root/exercise.py
 ADD exercise.exe /root/exercise.exe
+RUN chmod 755 /root/exercise.py
 #ADD secrets-entrypoint.sh /
 #RUN chmod 755 /secrets-entrypoint.sh
 #ENTRYPOINT ["/secrets-entrypoint.sh"]
-CMD ["python3.8 exercise.py"]
+CMD ["python3.8", "/root/exercise.py"]
