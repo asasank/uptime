@@ -1,4 +1,4 @@
-FROM centos
+FROM centos:latest
 RUN yum install java python38 gcc wget tar -y
 RUN useradd -m -U -d /opt/tomcat -s /bin/false tomcat
 RUN wget https://ftp.wayne.edu/apache/tomcat/tomcat-9/v9.0.36/bin/apache-tomcat-9.0.36.tar.gz
