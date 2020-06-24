@@ -2,7 +2,8 @@
 
 #Essential Services Installation
 yum update -y
-yum install java python38 gcc wget tar git docker yum-utils -y 
+yum remove podman
+yum install java python38 gcc wget tar git yum-utils iptables -y 
 sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 
 #AWS CLI Installation 
@@ -18,4 +19,9 @@ rpm --import http://pkg.jenkins.io/redhat-stable/jenkins.io.key
 yum install jenkins -y 
 systemctl start jenkins
 systemctl enable jenkins
-touch /etc/containers/nodocker
+wget https://download.docker.com/linux/static/stable/x86_64/docker-18.09.0.tgz
+tar xzvf docker-18.09.0.tgz
+sudo cp docker/* /usr/bin/
+usermod -aG docker $USER
+sudo dockerd &
+
