@@ -2,7 +2,7 @@
 
 #Essential Services Installation
 
-yum install java python38 gcc wget tar -y 
+yum install java python38 gcc wget tar git -y 
 
 #AWS CLI Installation 
 
