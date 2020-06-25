@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  This template create task def and update the ecs service 
+Parameters:
+  Environment:
+    Description: 'Env Name to which the deployment is being performed...staging, production'
+    Type: String
+  VPCID:    
+    Description: VPC ID to which you would like to deploy
+    Type: String     
+    Default: vpc-56562432	
+  VPCPublicSubnetA:
+    Description: VPC Public Subnet ID 1
+    Type: String
+    Default: subnet-04fd7061	
+  VPCPublicSubnetB:
+    Description: VPC Public Subnet ID 2
+    Type: String
+    Default: subnet-4604b44a
+  Image:
+    Description: Image ID to create Task Def
+    Type: String
+Resources:
+  LocalNameSpace:
+    Type: 'AWS::ServiceDiscovery::PrivateDnsNamespace'
+    Properties:
+      Description: Cloud Map private DNS namespace for resources for local
+      Vpc: !Ref VPCID
+      Name: !Sub '${Environment}'
+  DiscoveryService1:
+    Type: 'AWS::ServiceDiscovery::Service'
+    Properties:
+      Description: Discovery Service for the Demo Application
+      DnsConfig:
+        RoutingPolicy: MULTIVALUE
+        DnsRecords:
+          - TTL: 60
+            Type: A
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: uptime
+      NamespaceId: !Ref LocalNameSpace
+  ECSTaskDef1:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      NetworkMode: awsvpc
+      Family: uptime
+      ContainerDefinitions:
+        - Name: uptime
+          Image: !Ref Image
+          Cpu: '100'
+          Memory: '300'
+          PortMappings:
+            - ContainerPort: '8080'
+              HostPort: '8080'
+  ECSService1:
+    Type: 'AWS::ECS::Service'
+    Properties:
+      Cluster:
+        'Fn::ImportValue': !Sub '${Environment}-ECSCluster'
+      DesiredCount: 1
+      HealthCheckGracePeriodSeconds: '100'
+      LaunchType: EC2
+      PlacementStrategies:
+        - Type: spread
+          Field: host
+      LoadBalancers:
+        - ContainerName: uptime
+          ContainerPort: '8080'
+          TargetGroupArn:
+            'Fn::ImportValue': !Sub '${Environment}-TargetGroup1'
+      ServiceName: uptime
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets: 
+            - !Ref VPCPublicSubnetA
+            - !Ref VPCPublicSubnetB
+          SecurityGroups:
+            - 'Fn::ImportValue': !Sub '${Environment}-SG'
+      ServiceRegistries:
+        - RegistryArn: !GetAtt 
+            - DiscoveryService1
+            - Arn
+      TaskDefinition: !Ref ECSTaskDef1
