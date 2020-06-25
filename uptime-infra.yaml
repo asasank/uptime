@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  This template deploys an ECS cluster to the provided VPC and subnets using an
+  Auto Scaling Group
+Parameters:
+  Environment:
+    Description: Env name to which the cloudformation is being deployed
+    Type: String
+    Default: uptime-test	
+  KeyName:
+    Description: SSH Key Name
+    Type: String
+    Default: sasank2020	
+  AMIID:
+    Description: AMI ID to deploy Instance(s)
+    Type: String
+    Default: ami-07a63940735aebd38
+  VPCID:    
+    Description: VPC ID to which you would like to deploy
+    Type: String     
+    Default: vpc-56562432	
+  VPCPublicSubnetA:
+    Description: VPC Public Subnet ID 1
+    Type: String
+    Default: subnet-04fd7061	
+  VPCPublicSubnetB:
+    Description: VPC Public Subnet ID 2
+    Type: String
+    Default: subnet-4604b44a	
+Resources:
+  ECSCluster:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      ClusterName: !Sub '${Environment}'
+  TargetGroup1:
+    Properties:
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 20
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Name: !Sub '${Environment}'
+      Port: 8080
+      TargetType: ip
+      VpcId: !Ref VPCID	  
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 60
+        - Key: stickiness.lb_cookie.duration_seconds
+          Value: 86400
+        - Key: slow_start.duration_seconds
+          Value: 0
+        - Key: stickiness.type
+          Value: lb_cookie
+        - Key: load_balancing.algorithm.type
+          Value: round_robin
+        - Key: stickiness.enabled
+          Value: false
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+  ALB1:
+    Properties:
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: '120'
+      Name: !Sub '${Environment}'
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref ELBSG
+      Subnets:
+        - !Ref VPCPublicSubnetA
+        - !Ref VPCPublicSubnetB
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+  Listener1:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup1
+      LoadBalancerArn: !Ref ALB1
+      Port: 8080
+      Protocol: HTTP	  
+  ECSLaunchConfiguration:
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
+    Properties:
+      ImageId: !Ref AMIID
+      InstanceType: t2.micro
+      SecurityGroups:
+        - !Ref SG
+      KeyName: !Ref KeyName
+      IamInstanceProfile: ecsInstanceRole
+      UserData: !Base64 
+        'Fn::Sub': |
+          #!/bin/bash
+          echo ECS_CLUSTER=${Environment} >> /etc/ecs/ecs.config;
+          echo ECS_BACKEND_HOST= >> /etc/ecs/ecs.config;
+          AVAIL_ZONE=`curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone`
+          REGION="`echo \"$AVAIL_ZONE\" | sed 's/[a-z]$//'`"
+          instanceid=`curl http://169.254.169.254/latest/meta-data/instance-id`
+          yum update -y
+          yum install awscli unzip wget -y 
+  ASG:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Properties:
+      LaunchConfigurationName: !Ref ECSLaunchConfiguration
+      MinSize: 1
+      MaxSize: 1
+      VPCZoneIdentifier:
+        - !Ref VPCPublicSubnetA
+        - !Ref VPCPublicSubnetB
+      Tags:
+        - Key: Environment
+          PropagateAtLaunch: true
+          Value: !Sub '${Environment}'
+  SG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: ECS Instance SG
+      VpcId: !Ref VPCID      
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: '-1'
+  ELBSG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: ELB SG
+      VpcId: !Ref VPCID      
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: '-1'
+  SGIngress1:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    DependsOn: SG
+    Properties:
+      GroupId: !Ref SG
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref SG
+  SGIngress2:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    DependsOn: SG
+    Properties:
+      GroupId: !Ref SG
+      IpProtocol: tcp
+      FromPort: 8080
+      ToPort: 8080
+      SourceSecurityGroupId: !Ref ELBSG
+  SNS:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      DisplayName: notifications
+      TopicName: notifications
+Outputs:
+  ECSCluster:
+    Description: The ECS Cluster Name
+    Value: !Ref ECSCluster
+    Export:
+      Name: !Sub '${Environment}-ECSCluster'
+  TargetGroup1:
+    Description: The Name of TargetGroup1
+    Value: !Ref TargetGroup1
+    Export:
+      Name: !Sub '${Environment}-TargetGroup1'
+  SG:
+    Description: The Security Group Of The ECS Instance
+    Value: !Ref SG
+    Export:
+      Name: !Sub '${Environment}-SG'
+  Listener1:
+    Description: The ELB Listerner
+    Value: !Ref Listener1
+    Export:
+      Name: !Sub '${Environment}-Listener1'
