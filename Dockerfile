@@ -7,11 +7,4 @@ RUN mv apache-tomcat-9.0.36 /usr/local/tomcat9
 RUN chown -R tomcat:tomcat /usr/local/tomcat9
 RUN /usr/local/tomcat9/bin/startup.sh
 RUN mkdir /usr/local/tomcat9/webapps/uptime/
-ADD exercise.py /root/exercise.py
-ADD exercise.exe /root/exercise.exe
-RUN chmod 755 /root/exercise.py
-RUN chmod 755 /root/exercise.exe
-#ADD secrets-entrypoint.sh /
-#RUN chmod 755 /secrets-entrypoint.sh
-#ENTRYPOINT ["/secrets-entrypoint.sh"]
 CMD ["python3.8", "/root/exercise.py"]
