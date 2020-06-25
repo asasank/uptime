@@ -5,4 +5,5 @@ RUN chmod 755 /root/exercise.py
 RUN chmod 755 /root/exercise.exe
 ADD entrypoint.sh /root/entrypoint.sh
 RUN chmod 755 /root/entrypoint.sh
+EXPOSE 8080
 ENTRYPOINT ["/root/entrypoint.sh"]
