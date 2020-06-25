@@ -1,0 +1,6 @@
+FROM uptimetomcat9:latest
+ADD exercise.py /root/exercise.py
+ADD exercise.exe /root/exercise.exe
+RUN chmod 755 /root/exercise.py
+RUN chmod 755 /root/exercise.exe
+CMD ["python3.8", "/root/exercise.py"]
